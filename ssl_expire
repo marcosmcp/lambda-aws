@@ -1,0 +1,19 @@
+print('Loading message function...')
+today_date = datetime.date.today()
+acm = boto3.client('acm', region_name='sa-east-1')
+allcerts = acm.list_certificates(CertificateStatuses=['ISSUED'])
+
+def send_to_sns(message, context):
+    for certificate  in allcerts['CertificateSummaryList']:
+       certificate_data=acm.describe_certificate(CertificateArn=certificate['CertificateArn'])
+       expires_on = certificate_data['Certificate']['NotAfter'].date()
+       diff = expires_on - today_date
+       expire_days = diff.days
+       if expire_days < 30:
+          sns = boto3.client('sns')
+          sns.publish(
+             TopicArn='arn:',
+             Subject='Alerta de certificado expirando',
+             Message=json.dumps({'ARN':certificate['CertificateArn'], 'Domain': certificate_data['Certificate']['DomainName'], 'Days remaining': expire_days })
+          )
+    return ('Sent a message to an Amazon SNS topic.')
